@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Galon Simulator v1.8</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;-webkit-tap-highlight-color:transparent}
+  body{background:#0f172a;color:#fff;overflow:hidden;height:100vh}
+  .screen{width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;position:absolute;top:0;left:0;transition:0.4s;background:#0f172a}
+  .hidden{display:none;opacity:0;pointer-events:none}
+  .logo{font-size:28px;font-weight:900;margin-bottom:10px;color:#38bdf8;animation:pop 1s}
+  @keyframes pop{0%{transform:scale(0.5);opacity:0}100%{transform:scale(1);opacity:1}}
+  .btn{background:#38bdf8;color:#000;border:none;padding:14px 20px;border-radius:12px;font-weight:700;margin:8px;width:85%;max-width:320px;font-size:15px}
+  .btn:active{background:#0ea5e9}
+  input{padding:12px;border-radius:10px;border:1px solid #334155;width:85%;max-width:320px;margin:6px;background:#1e293b;color:#fff;font-size:15px}
+  .box{background:#1e293b;padding:22px;border-radius:16px;width:92%;max-width:420px;text-align:center;box-shadow:0 8px 30px #0006}
+  #gameUI{position:absolute;top:10px;left:10px;right:10px;background:#000c;padding:12px;border-radius:14px;font-size:13px;backdrop-filter:blur(6px)}
+  .stat{margin:5px 0;display:flex;justify-content:space-between}
+  #map{position:absolute;bottom:0;width:100%;height:55%;background:#0b1220;display:flex;align-items:center;justify-content:center;font-size:14px;text-align:center;border-top:2px solid #38bdf8}
+  h2{margin-bottom:10px;color:#38bdf8}
+  p{font-size:13px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<!-- 1. ANIMASI PEMBUKA -->
+<div id="splash" class="screen">
+  <div class="logo">🚚 GALON SIMULATOR v1.8</div>
+  <div>Loading Depot...</div>
+</div>
+
+<!-- 2. LOGIN / DAFTAR -->
+<div id="auth" class="screen hidden">
+  <div class="box">
+    <h2>🚰 Masuk Depot</h2>
+    <input id="user" placeholder="Nama Akun" autocomplete="off">
+    <input id="pass" type="password" placeholder="Password">
+    <button class="btn" onclick="daftar()">Daftar Akun Baru</button>
+    <button class="btn" onclick="login()">Masuk</button>
+  </div>
+</div>
+
+<!-- 3. KETENTUAN -->
+<div id="tos" class="screen hidden">
+  <div class="box">
+    <h2>📜 Ketentuan Bermain</h2>
+    <p>1. Main santai, jangan nge-cheat.<br>2. Bensin habis = mogok beneran.<br>3. Capek nganter galon itu wajar 😆<br>4. Data save di HP lu sendiri.</p>
+    <button class="btn" onclick="setuju()">Saya Setuju & Main</button>
+  </div>
+</div>
+
+<!-- 4. PILIH KARAKTER -->
+<div id="char" class="screen hidden">
+  <div class="box">
+    <h2>Pilih Kurir Lu</h2>
+    <button class="btn" onclick="startGame('Laki-laki')">👨 Laki-laki</button>
+    <button class="btn" onclick="startGame('Perempuan')">👩 Perempuan</button>
+  </div>
+</div>
+
+<!-- 5. GAME UTAMA -->
+<div id="game" class="screen hidden">
+  <div id="gameUI">
+    <div class="stat"><span>💰 Duit</span><span>Rp <span id="duit">20000</span></span></div>
+    <div class="stat"><span>⛽ Bensin</span><span><span id="bensin">100</span>%</span></div>
+    <div class="stat"><span>📦 Stok Galon</span><span><span id="galon">0</span>/2</span></div>
+    <div class="stat"><span>📊 Level</span><span><span id="lv">1</span> | XP <span id="xp">0</span>/100</span></div>
+    <hr style="border:1px solid #334155;margin:8px 0">
+    <button class="btn" onclick="pesanAir()">Pesan Tangki Air 2 Galon -Rp8.000</button>
+    <button class="btn" onclick="isiBensin()">Isi Bensin SPBU -Rp5.000</button>
+    <button class="btn" onclick="nganter()">Nganter 1 Galon +Rp9.000</button>
+    <button class="btn" onclick="bukaTutup()">Toko: <span id="statusToko">BUKA</span></button>
+  </div>
+  <div id="map">🗺️ MAP LARGE V1.8<br>SPBU | Warung Warga | Rumah Customer<br><small>Upgrade v2: Peta bisa diklik</small></div>
+</div>
+
+<script>
+let data = JSON.parse(localStorage.getItem('galonSave_'+user?.value)) || {user:"",duit:20000,bensin:100,galon:0,lv:1,xp:0,toko:true,gender:""};
+
+// ANIMASI 3 DETIK
+setTimeout(()=>{
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('auth').classList.remove('hidden');
+},3000);
+
+// LOGIN SYSTEM OFFLINE
+function daftar(){
+  let u=user.value.trim(),p=pass.value.trim();
+  if(!u||!p) return alert("Isi nama & password dulu");
+  if(localStorage.getItem('acc_'+u)) return alert("Akun udah ada");
+  localStorage.setItem('acc_'+u,p);
+  alert("Akun dibuat! Silakan login");
+  pass.value="";
+}
+function login(){
+  let u=user.value.trim(),p=pass.value.trim();
+  if(localStorage.getItem('acc_'+u)===p){
+    data.user=u;
+    let save=localStorage.getItem('galonSave_'+u);
+    if(save) data=JSON.parse(save);
+    document.getElementById('auth').classList.add('hidden');
+    document.getElementById('tos').classList.remove('hidden');
+  }else alert("Login gagal. Cek nama/password");
+}
+function setuju(){
+  document.getElementById('tos').classList.add('hidden');
+  document.getElementById('char').classList.remove('hidden');
+}
+function startGame(g){
+  data.gender=g;
+  document.getElementById('char').classList.add('hidden');
+  document.getElementById('game').classList.remove('hidden');
+  updateUI();
+}
+
+// GAME LOGIC
+function save(){
+  if(data.user) localStorage.setItem('galonSave_'+data.user,JSON.stringify(data));
+}
+function updateUI(){
+  duit.innerText=data.duit.toLocaleString('id-ID');
+  bensin.innerText=data.bensin;
+  galon.innerText=data.galon;
+  lv.innerText=data.lv;
+  xp.innerText=data.xp;
+  statusToko.innerText=data.toko?"BUKA":"TUTUP";
+  save();
+}
+
+function pesanAir(){
+  if(data.duit<8000) return alert("Duit kurang Rp8.000");
+  if(data.galon>0) return alert("Stok masih ada. Habisin dulu");
+  data.duit-=8000;
+  data.galon=2;
+  addXP(20);
+  alert("🚚 Tangki Biru datang! Stok +2 Galon");
+  updateUI();
+}
+
+function isiBensin(){
+  if(data.duit<5000) return alert("Duit kurang Rp5.000");
+  if(data.bensin>=100) return alert("Bensin udah penuh");
+  data.duit-=5000;
+  data.bensin=100;
+  alert("⛽ Isi bensin di SPBU. Full tank!");
+  updateUI();
+}
+
+function nganter(){
+  if(!data.toko) return alert("Toko lagi TUTUP. Buka dulu");
+  if(data.galon<=0) return alert("Stok kosong, pesan tangki dulu");
+  if(data.bensin<=10) return alert("⚠️ Bensin kritis! Isi dulu atau mogok di jalan");
+  data.galon--;
+  data.bensin-=15;
+  data.duit+=9000;
+  addXP(30);
+  alert("✅ Nganter berhasil! +Rp9.000 -15% bensin");
+  updateUI();
+}
+
+function bukaTutup(){
+  data.toko=!data.toko;
+  alert(data.toko?"Toko DIBUKA":"Toko DITUTUP");
+  updateUI();
+}
+
+function addXP(v){
+  data.xp+=v;
+  if(data.xp>=100){data.lv++;data.xp=0;alert("🎉 Naik Level! Sekarang Lv."+data.lv)}
+}
+</script>
+</body>
+  </html>
