@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Galon Simulator v1.91</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif}
+  body{background:#0f172a;color:#fff;overflow:hidden}
+  .screen{width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;position:absolute;top:0;left:0;transition:0.5s}
+  .hidden{display:none}
+  .logo{font-size:28px;font-weight:900;margin-bottom:10px;color:#38bdf8;animation:pop 1s}
+  @keyframes pop{0%{transform:scale(0.5);opacity:0}100%{transform:scale(1);opacity:1}}
+  .btn{background:#38bdf8;color:#000;border:none;padding:12px 20px;border-radius:12px;font-weight:700;margin:6px;width:90%;max-width:320px}
+  .btn:disabled{background:#334155;color:#94a3b8}
+  .btn-red{background:#f87171}
+  input{padding:10px;border-radius:8px;border:none;width:90%;max-width:320px;margin:6px;background:#1e293b;color:#fff}
+  .box{background:#1e293b;padding:20px;border-radius:16px;width:95%;max-width:420px;text-align:center;max-height:90vh;overflow-y:auto}
+  #gameUI{position:absolute;top:10px;left:10px;right:10px;background:#000b;padding:10px;border-radius:12px;font-size:12px}
+  .stat{margin:3px 0}
+  #map{position:absolute;bottom:0;width:100%;height:55%;background:#0b1220;padding:10px;font-size:13px;overflow-y:auto}
+  .menu-btn{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+  .menu-btn .btn{width:48%;font-size:12px;padding:10px}
+  .keranjang{color:#22d3ee;font-weight:700}
+</style>
+</head>
+<body>
+
+<!-- 1. SPLASH -->
+<div id="splash" class="screen">
+  <div class="logo">🚚 GALON SIMULATOR v1.91</div>
+  <div>Pasang Keranjang Honda...</div>
+</div>
+
+<!-- 2. AUTH -->
+<div id="auth" class="screen hidden">
+  <div class="box">
+    <h2>🚰 Masuk Depot</h2>
+    <input id="user" placeholder="Nama Akun">
+    <input id="pass" type="password" placeholder="Password">
+    <button class="btn" onclick="daftar()">Daftar Akun Baru</button>
+    <button class="btn" onclick="login()">Masuk</button>
+  </div>
+</div>
+
+<!-- 3. TOS -->
+<div id="tos" class="screen hidden">
+  <div class="box">
+    <h2>📜 Ketentuan Bermain</h2>
+    <p style="font-size:13px;margin:10px 0">1. Jangan nge-cheat.<br>2. Bensin 0% = Mogok.<br>3. Keranjang Honda = Rezeki 😆</p>
+    <button class="btn" onclick="setuju()">Saya Setuju & Main</button>
+  </div>
+</div>
+
+<!-- 4. CHAR -->
+<div id="char" class="screen hidden">
+  <div class="box">
+    <h2>Pilih Kurir Lu</h2>
+    <button class="btn" onclick="startGame('Laki-laki')">👨 Laki-laki</button>
+    <button class="btn" onclick="startGame('Perempuan')">👩 Perempuan</button>
+  </div>
+</div>
+
+<!-- 5. GAME -->
+<div id="game" class="screen hidden">
+  <div id="gameUI">
+    <div class="stat">💰 Rp <span id="duit">20000</span> | ⛽ <span id="bensin">100</span>%</div>
+    <div class="stat">📦 Galon: <span id="galon">0</span>/<span id="kapasitas">2</span> | 🏠 Gudang Lv.<span id="lvGudang">1</span></div>
+    <div class="stat">📊 Lv.<span id="lv">1</span> | XP: <span id="xp">0</span>/100 | 🛵 <span id="motor">Jalan Kaki</span> <span id="keranjang" class="keranjang"></span></div>
+    <div class="stat">👷 Karyawan: <span id="jmlKaryawan">0</span> | Toko: <span id="statusToko">BUKA</span></div>
+  </div>
+  <div id="map">
+    <h3>🗺️ Menu Aksi</h3>
+    <div class="menu-btn">
+      <button class="btn" onclick="pesanAir()">Pesan Tangki -8rb</button>
+      <button class="btn" onclick="isiBensin()">Isi SPBU -5rb</button>
+      <button class="btn" onclick="nganter()">Nganter +9rb</button>
+      <button class="btn" onclick="kasirEceran()">Kasir Eceran +7rb</button>
+    </div>
+    <h3 style="margin-top:10px">⚙️ Upgrade</h3>
+    <div class="menu-btn">
+      <button class="btn" onclick="beliMotor()">Beli Honda+Keranjang 50rb</button>
+      <button class="btn" onclick="rekrutKaryawan()">Rekrut Karyawan 30rb</button>
+      <button class="btn" onclick="upgradeGudang()">Upgrade Gudang 25rb</button>
+      <button class="btn btn-red" onclick="bukaTutup()"><span id="btnToko">TUTUP</span> Toko</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let data = {
+  user:"",duit:20000,bensin:100,galon:0,lv:1,xp:0,toko:true,gender:"",
+  motor:false,keranjang:false,karyawan:0,lvGudang:1,kapasitas:2
+};
+
+// SPLASH 3 DETIK
+setTimeout(()=>{
+  splash.classList.add('hidden');
+  auth.classList.remove('hidden');
+},3000);
+
+// AUTH
+function daftar(){
+  let u=user.value,p=pass.value;
+  if(!u||!p) return alert("Isi semua");
+  localStorage.setItem("galon_"+u,p);
+  alert("Akun dibuat! Silakan login");
+}
+function login(){
+  let u=user.value,p=pass.value;
+  if(localStorage.getItem("galon_"+u)===p){
+    data.user=u;
+    auth.classList.add('hidden');
+    tos.classList.remove('hidden');
+  }else alert("Login gagal");
+}
+function setuju(){tos.classList.add('hidden');char.classList.remove('hidden');}
+function startGame(g){
+  data.gender=g;
+  char.classList.add('hidden');
+  game.classList.remove('hidden');
+  updateUI();
+}
+
+// UPDATE UI
+function updateUI(){
+  duit.innerText=data.duit.toLocaleString('id-ID');
+  bensin.innerText=data.bensin;
+  galon.innerText=data.galon;
+  kapasitas.innerText=data.kapasitas;
+  lv.innerText=data.lv;
+  xp.innerText=data.xp;
+  lvGudang.innerText=data.lvGudang;
+  motor.innerText=data.motor?"Honda Beat":"Jalan Kaki";
+  keranjang.innerText=data.keranjang?"| 🧺 Keranjang +3":"";
+  jmlKaryawan.innerText=data.karyawan;
+  statusToko.innerText=data.toko?"BUKA":"TUTUP";
+  btnToko.innerText=data.toko?"TUTUP":"BUKA";
+}
+
+// CORE GAME
+function pesanAir(){
+  if(data.duit<8000) return alert("Duit kurang");
+  if(data.galon>=data.kapasitas) return alert("Gudang penuh. Upgrade dulu");
+  data.duit-=8000;
+  data.galon=Math.min(data.kapasitas, data.galon+2);
+  addXP(20);
+  alert("Tangki Biru datang! Stok +2 Galon");
+  updateUI();
+}
+
+function isiBensin(){
+  if(data.duit<5000) return alert("Duit kurang");
+  if(data.bensin>=100) return alert("Udah penuh");
+  data.duit-=5000;
+  data.bensin=100;
+  alert("Isi bensin di SPBU");
+  updateUI();
+}
+
+function nganter(){
+  if(!data.toko) return alert("Toko lagi TUTUP");
+  if(data.galon<=0) return alert("Stok kosong, pesan dulu");
+  if(data.bensin<=10) return alert("Bensin mau habis! Isi dulu atau mogok");
+  let untung = data.motor ? 12000 : 9000; 
+  let bensinKepake = data.motor ? 8 : 15;
+  data.galon--;
+  data.bensin-=bensinKepake;
+  data.duit+=untung;
+  addXP(30);
+  alert(`Nganter berhasil! +Rp${untung.toLocaleString('id-ID')}`);
+  updateUI();
+}
+
+function kasirEceran(){
+  if(!data.toko) return alert("Toko TUTUP");
+  if(data.galon<=0) return alert("Stok kosong");
+  data.galon--;
+  data.duit+=7000;
+  addXP(15);
+  alert("Jual eceran di toko +Rp7.000");
+  updateUI();
+}
+
+function bukaTutup(){
+  data.toko=!data.toko;
+  if(data.karyawan>0 && data.toko){
+    data.duit+=data.karyawan*2000; 
+    alert(`Karyawan jaga toko! +Rp${(data.karyawan*2000).toLocaleString('id-ID')}`);
+  }
+  updateUI();
+}
+
+// FITUR BARU
+function beliMotor(){
+  if(data.motor) return alert("Udah punya Honda Beat");
+  if(data.duit<50000) return alert("Duit kurang 50rb");
+  data.duit-=50000;
+  data.motor=true;
+  data.keranjang=true;
+  data.kapasitas+=3; // INI KERANJANGNYA BANG 🔥
+  alert("Selamat! Dapat Honda Beat + Keranjang Belakang +3 Slot");
+  updateUI();
+}
+
+function rekrutKaryawan(){
+  if(data.duit<30000) return alert("Duit kurang 30rb");
+  data.duit-=30000;
+  data.karyawan++;
+  alert("Karyawan baru! Dia bakal jaga toko pas lu TUTUP");
+  updateUI();
+}
+
+function upgradeGudang(){
+  if(data.lvGudang>=10) return alert("Gudang udah Max Lv.10");
+  if(data.duit<25000) return alert("Duit kurang 25rb");
+  data.duit-=25000;
+  data.lvGudang++;
+  data.kapasitas+=2;
+  alert(`Gudang naik ke Lv.${data.lvGudang}! Kapasitas +2`);
+  updateUI();
+}
+
+function addXP(v){
+  data.xp+=v;
+  if(data.xp>=100){data.lv++;data.xp=0;alert("Naik Level Kurir! Lv."+data.lv)}
+}
+</script>
+</body>
+    </html>
