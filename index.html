@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GALON SIMULATOR</title>
+    <style>
+        /* --- RESET & BASIC SETUP --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to bottom, #87CEEB 0%, #87CEEB 60%, #8B5A2B 60%, #6E4720 100%);
+            /* Atas langit biru (60%), bawah jalan tanah coklat */
+        }
+
+        /* --- UI ELEMENTS --- */
+        /* Judul Game dengan animasi goyang */
+        .judul {
+            position: absolute;
+            top: 2vh;
+            width: 100%;
+            text-align: center;
+            font-size: 8vw;
+            font-weight: bold;
+            color: #FFD700; /* Emas */
+            text-shadow: 2px 2px 0px #000, -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000;
+            animation: goyang 1s ease-in-out infinite alternate;
+            z-index: 10;
+        }
+        @keyframes goyang {
+            0% { transform: rotate(-2deg); }
+            100% { transform: rotate(2deg); }
+        }
+
+        /* Indikator Uang di pojok kanan atas */
+        .ui-uang {
+            position: absolute;
+            top: 2vh;
+            right: 4vw;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 4.5vw;
+            font-weight: bold;
+            border: 2px solid #FFD700;
+            z-index: 10;
+        }
+
+        /* Tombol Toko / Ganti Baju di pojok kiri bawah */
+        .btn-toko {
+            position: absolute;
+            bottom: 3vh;
+            left: 4vw;
+            padding: 12px 20px;
+            font-size: 3.5vw;
+            font-weight: bold;
+            background-color: #ff5722;
+            color: white;
+            border: 3px solid #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px #d84315;
+            cursor: pointer;
+            z-index: 10;
+        }
+        .btn-toko:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px #d84315;
+        }
+
+        /* Tombol Utama Antar Galon di bawah tengah-kanan */
+        .btn-antar {
+            position: absolute;
+            bottom: 3vh;
+            right: 4vw;
+            padding: 15px 30px;
+            font-size: 5vw;
+            font-weight: bold;
+            background: linear-gradient(#4CAF50, #388E3C);
+            color: white;
+            border: 4px solid #fff;
+            border-radius: 15px;
+            box-shadow: 0 6px #1B5E20;
+            cursor: pointer;
+            z-index: 10;
+        }
+        .btn-antar:active {
+            transform: translateY(6px);
+            box-shadow: 0 0px #1B5E20;
+        }
+
+        /* --- LINGKUNGAN / DEPOT --- */
+        /* Bangunan Depot Air */
+        .depot {
+            position: absolute;
+            bottom: 40vh; /* Pas di atas garis jalan */
+            left: 5vw;
+            width: 45vw;
+            height: 30vh;
+            background: radial-gradient(circle, transparent 20%, #d7ccc8 20%, #d7ccc8 21%, transparent 21%),
+                        radial-gradient(circle, transparent 20%, #d7ccc8 20%, #d7ccc8 21%, transparent 21%),
+                        linear-gradient(0deg, #bcaaa4 2px, transparent 2px),
+                        linear-gradient(90deg, #bcaaa4 2px, #a1887f 2px);
+            background-size: 20px 10px; /* Efek Dinding Bata Coklat Muda */
+            border: 3px solid #5d4037;
+        }
+
+        /* Atap Seng Bergelombang */
+        .atap {
+            position: absolute;
+            top: -5vh;
+            left: -2vw;
+            width: 49vw;
+            height: 5vh;
+            background: linear-gradient(90deg, #999 25%, #bbb 25%, #bbb 50%, #777 50%, #777 75%, #999 75%);
+            background-size: 15px 100%; /* Efek Seng Bergelombang */
+            border-radius: 5px 5px 0 0;
+            border-bottom: 2px solid #555;
+        }
+
+        /* Tumpukan Galon di Atas Atap */
+        .tumpukan-galon {
+            position: absolute;
+            top: -9vh;
+            left: 5vw;
+            display: flex;
+            gap: 5px;
+        }
+        .galon-stok {
+            width: 5vw;
+            height: 4vh;
+            background-color: #2196F3; /* Biru Galon */
+            border-radius: 5px 5px 2px 2px;
+            border: 1px solid #0d47a1;
+            position: relative;
+        }
+        .galon-stok::before {
+            content: '';
+            position: absolute;
+            top: -0.8vh;
+            left: 35%;
+            width: 30%;
+            height: 0.8vh;
+            background-color: #fff; /* Tutup Galon */
+            border-radius: 2px;
+        }
+
+        /* Pintu Besi Depot */
+        .pintu-depot {
+            position: absolute;
+            bottom: 0;
+            left: 12vw;
+            width: 20vw;
+            height: 20vh;
+            background: linear-gradient(90deg, #555, #777, #555);
+            border: 4px solid #333;
+            border-bottom: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .tulisan-depot {
+            color: #FFD700; /* Emas */
+            font-weight: bold;
+            font-size: 3.5vw;
+            text-shadow: 1px 1px 2px #000;
+            letter-spacing: 2px;
+        }
+
+        /* --- KARAKTER (NPC & PLAYER) --- */
+        /* Pak Bos */
+        .pak-bos {
+            position: absolute;
+            bottom: 40vh;
+            left: 36vw;
+            width: 6vw;
+            height: 14vh;
+            background-color: #ffd1a4; /* Siluet Warna Kulit */
+            border-radius: 20px 20px 0 0;
+            z-index: 2;
+        }
+        .tangan-bos {
+            position: absolute;
+            top: 3vh;
+            left: -4vw;
+            font-size: 6vw;
+            transform: scaleX(-1); /* Menghadap ke player */
+        }
+
+        /* Container Player dan Motor */
+        .player-container {
+            position: absolute;
+            bottom: 34vh;
+            left: 50vw;
+            width: 28vw;
+            height: 22vh;
+            transition: left 1.8s linear; /* Waktu perjalanan 1.8 detik */
+            z-index: 5;
+        }
+
+        /* Animasi Kepala Noleh */
+        .noleh-kanan {
+            transform: scaleX(-1);
+        }
+
+        /* Bagian Kepala Player (Terpisah untuk animasi) */
+        .kepala {
+            position: absolute;
+            top: 0;
+            left: 10vw;
+            width: 6vw;
+            height: 6vw;
+            background-color: #ffcc80;
+            border-radius: 50%;
+            z-index: 4;
+            transition: transform 0.2s;
+        }
+        /* Topi */
+        .topi {
+            position: absolute;
+            top: -1.5vw;
+            left: -0.5vw;
+            width: 7vw;
+            height: 2.5vw;
+            background-color: #2196F3; /* Warna baju/topi default */
+            border-radius: 50px 50px 0 0;
+        }
+        .topi::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: -2vw;
+            width: 3vw;
+            height: 0.8vw;
+            background-color: #2196F3; /* Pet Topi */
+            border-radius: 0 5px 5px 0;
+        }
+
+        /* Badan / Baju */
+        .baju {
+            position: absolute;
+            top: 5.5vw;
+            left: 9.5vw;
+            width: 7vw;
+            height: 8vh;
+            background-color: #2196F3; /* Warna baju default */
+            border-radius: 15px 15px 0 0;
+            z-index: 3;
+        }
+
+        /* Kendaraan Motor Galon */
+        .motor {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 28vw;
+            height: 11vh;
+            background: url('motor_galon.png') no-repeat center/contain;
+            /* Placeholder Visual jika gambar tidak ada */
+            background-color: rgba(0, 0, 0, 0.8); 
+            border-radius: 20px;
+            box-shadow: inset 0 0 10px #333;
+        }
+        /* Teks penanda di motor jika gambar kosong */
+        .motor::after {
+            content: 'MOTOR GALON';
+            color: white;
+            font-size: 2vw;
+            position: absolute;
+            bottom: 4vh;
+            left: 5vw;
+            font-weight: bold;
+        }
+
+        /* Muatan Galon di Motor */
+        .muatan-galon {
+            position: absolute;
+            top: -4vh;
+            left: 2vw;
+            width: 6vw;
+            height: 5vh;
+            background-color: #2196F3;
+            border-radius: 5px;
+            border: 2px solid #0d47a1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="judul">GALON SIMULATOR</div>
+    <div class="ui-uang" id="display-uang">Rp 0</div>
+    
+    <button class="btn-toko" onclick="gantiBaju()">GANTI BAJU 50rb</button>
+    <button class="btn-antar" id="btn-antar" onclick="antarGalon()">ANTAR GALON</button>
+
+    <div class="depot">
+        <div class="atap"></div>
+        <div class="tumpukan-galon">
+            <div class="galon-stok"></div>
+            <div class="galon-stok"></div>
+            <div class="galon-stok"></div>
+        </div>
+        <div class="pintu-depot">
+            <span class="tulisan-depot">DEPOT</span>
+        </div>
+    </div>
+
+    <div class="pak-bos">
+        <div class="tangan-bos">🫵</div>
+    </div>
+
+    <div class="player-container" id="player-group">
+        <div class="kepala" id="player-kepala">
+            <div class="topi" id="player-topi"></div>
+        </div>
+        <div class="baju" id="player-baju"></div>
+        <div class="motor">
+            <div class="muatan-galon"></div>
+        </div>
+    </div>
+
+    <script>
+        // State Game
+        let uang = 0;
+        let indexSkin = 0;
+        let sedangMengantar = false;
+
+        // Daftar Warna Skin (Biru -> Ijo -> Kuning -> Ungu)
+        const daftarWarna = ['#2196F3', '#4CAF50', '#FFC107', '#9C27B0'];
+
+        // DOM Elements
+        const displayUang = document.getElementById('display-uang');
+        const playerGroup = document.getElementById('player-group');
+        const playerKepala = document.getElementById('player-kepala');
+        const playerBaju = document.getElementById('player-baju');
+        const playerTopi = document.getElementById('player-topi');
+        const btnAntar = document.getElementById('btn-antar');
+
+        // Fungsi Update UI Uang
+        function updateUangDisplay() {
+            displayUang.innerText = 'Rp ' + uang.toLocaleString('id-ID');
+        }
+
+        // Fitur 5: Gameplay Inti (Antar Galon)
+        function antarGalon() {
+            if (sedangMengantar) return; // Mencegah spam klik saat jalan
+            sedangMengantar = true;
+            btnAntar.disabled = true;
+            btnAntar.style.opacity = '0.5';
+
+            // Kepala noleh ke kanan (skala dibalik)
+            playerKepala.classList.add('noleh-kanan');
+
+            // Motor jalan ke kanan layar
+            playerGroup.style.left = '100vw';
+
+            // Setelah sampai di kanan (1.8 detik)
+            setTimeout(() => {
+                // Kepala hadap normal lagi (kembali ke depot)
+                playerKepala.classList.remove('noleh-kanan');
+                playerGroup.style.transition = 'none'; // Instant teleport balik ke kiri luar layar untuk efek kembali
+                playerGroup.style.left = '-30vw';
+
+                // Kasih delay dikit terus jalan masuk kembali ke posisi depot awal
+                setTimeout(() => {
+                    playerGroup.style.transition = 'left 1.8s linear';
+                    playerGroup.style.left = '50vw';
+                    
+                    // Selesai perjalanan, tambah uang
+                    uang += 10000;
+                    updateUangDisplay();
+
+                    // Reset status tombol
+                    sedangMengantar = false;
+                    btnAntar.disabled = false;
+                    btnAntar.style.opacity = '1';
+                }, 50);
+
+            }, 1800);
+        }
+
+        // Fitur 6: Sistem Toko Skin Ganti Baju
+        function gantiBaju() {
+            if (uang >= 50000) {
+                uang -= 50000;
+                updateUangDisplay();
+
+                // Ganti index warna secara bergiliran
+                indexSkin = (indexSkin + 1) % daftarWarna.length;
+                const warnaBaru = daftarWarna[indexSkin];
+
+                // Terapkan warna baru ke baju dan topi
+                playerBaju.style.backgroundColor = warnaBaru;
+                playerTopi.style.backgroundColor = warnaBaru;
+
+                // Modifikasi pseudo-element pet topi secara dinamis melalui tag style
+                let stylePet = document.getElementById('custom-topi-style');
+                if (!stylePet) {
+                    stylePet = document.createElement('style');
+                    stylePet.id = 'custom-topi-style';
+                    document.head.appendChild(stylePet);
+                }
+                stylePet.innerHTML = `.topi::after { background-color: ${warnaBaru} !important; }`;
+
+            } else {
+                alert('Uang kurang! Kerja dulu 😤');
+            }
+        }
+
+        // Inisialisasi awal
+        updateUangDisplay();
+    </script>
+</body>
+  </html>
